@@ -1,15 +1,13 @@
 import os
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
-from sqlalchemy import desc, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from knx_telegram_store import TelegramQuery
 from xknx.telegram.address import IndividualAddress
 
 import knx_daemon  # import global config
-from database import get_db
-from models import telegrams_table
+from database import store
 from parsers import (
     format_dpt_name,
     format_value_nicely,
@@ -19,6 +17,7 @@ from ws_manager import manager
 
 router = APIRouter()
 
+
 def get_backend_version() -> str:
     """Returns the backend version from ENV or git"""
     version = os.getenv("APP_VERSION", "")
@@ -26,13 +25,12 @@ def get_backend_version() -> str:
         try:
             # Fallback to git if running locally
             version = subprocess.check_output(
-                ["git", "describe", "--tags", "--always"], 
-                stderr=subprocess.DEVNULL,
-                text=True
+                ["git", "describe", "--tags", "--always"], stderr=subprocess.DEVNULL, text=True
             ).strip()
         except Exception:
             version = "dev"
     return version
+
 
 @router.get("/api/version")
 async def get_version():
@@ -40,22 +38,26 @@ async def get_version():
     return {"version": get_backend_version()}
 
 
-def _build_telegram_response(rows) -> list:
+def _build_telegram_response(telegrams: list) -> list:
     """Shared serializer used by both the history and delta-expanded queries."""
     response_data = []
-    for row in rows:
-        r = dict(row)
-        if r["raw_data"]:
-            r["raw_data"] = r["raw_data"].hex()
+    for t in telegrams:
+        # Convert StoredTelegram to the dict format expected by the frontend
+        r = {
+            "timestamp": t.timestamp,
+            "source_address": t.source,
+            "target_address": t.destination,
+            "telegram_type": t.telegramtype,
+            "dpt_main": t.dpt_main,
+            "dpt_sub": t.dpt_sub,
+            "value_numeric": t.value,
+            "value_json": t.payload,
+            "raw_data": t.raw_data if t.raw_data else None,
+            "source_name": t.source_name or knx_daemon.project_name_map["ia"].get(t.source),
+            "target_name": t.destination_name or knx_daemon.project_name_map["ga"].get(t.destination),
+        }
 
-        source_addr = r.get("source_address")
-        target_addr = r.get("target_address")
-        type_name = r.get("telegram_type")
-
-        # Enrich from project
-        r["source_name"] = knx_daemon.project_name_map["ia"].get(source_addr)
-        r["target_name"] = knx_daemon.project_name_map["ga"].get(target_addr)
-        r["simplified_type"] = get_simplified_type(type_name)
+        r["simplified_type"] = get_simplified_type(r["telegram_type"])
 
         d_name, unit = format_dpt_name(r.get("dpt_main"), r.get("dpt_sub"))
         r["dpt_name"] = d_name
@@ -64,7 +66,7 @@ def _build_telegram_response(rows) -> list:
         r["value_formatted"] = format_value_nicely(
             r.get("value_numeric") if r.get("value_numeric") is not None else r.get("value_json"),
             r.get("dpt_main"),
-            r.get("dpt_sub")
+            r.get("dpt_sub"),
         )
 
         r["raw_hex"] = f"0x{r['raw_data']}" if r.get("raw_data") and len(r["raw_data"]) > 1 else r.get("raw_data")
@@ -75,7 +77,6 @@ def _build_telegram_response(rows) -> list:
 
 @router.get("/api/telegrams")
 async def get_telegrams(
-    db: AsyncSession = Depends(get_db),
     limit: int = 25000,
     offset: int = 0,
     # Multi-value: comma-separated strings
@@ -93,100 +94,36 @@ async def get_telegrams(
     source_list = [s.strip() for s in source_address.split(",")] if source_address else []
     target_list = [s.strip() for s in target_address.split(",")] if target_address else []
     type_list = [s.strip() for s in telegram_type.split(",")] if telegram_type else []
-    # type_list may contain simplified names (Write/Read/Response), map back to technical names
+
+    # Map simplified types to technical names
     type_map_reverse = {"Write": "GroupValueWrite", "Read": "GroupValueRead", "Response": "GroupValueResponse"}
     type_list_db = [type_map_reverse.get(t, t) for t in type_list]
     dpt_main_list = [int(d.strip()) for d in dpt_main.split(",") if d.strip().isdigit()] if dpt_main else []
 
-    def apply_filters(query):
-        if source_list:
-            query = query.where(telegrams_table.c.source_address.in_(source_list))
-        if target_list:
-            query = query.where(telegrams_table.c.target_address.in_(target_list))
-        if type_list_db:
-            query = query.where(telegrams_table.c.telegram_type.in_(type_list_db))
-        if dpt_main_list:
-            query = query.where(telegrams_table.c.dpt_main.in_(dpt_main_list))
-        if start_time:
-            query = query.where(telegrams_table.c.timestamp >= start_time)
-        if end_time:
-            query = query.where(telegrams_table.c.timestamp <= end_time)
-        return query
+    # Build the library query
+    query = TelegramQuery(
+        sources=source_list or None,
+        destinations=target_list or None,
+        telegram_types=type_list_db or None,
+        dpt_mains=dpt_main_list or None,
+        start_time=start_time,
+        end_time=end_time,
+        delta_before_ms=delta_before_ms,
+        delta_after_ms=delta_after_ms,
+        limit=limit,
+        offset=offset,
+        order_descending=True,
+    )
 
-    base_query = apply_filters(select(telegrams_table))
-
-    if delta_before_ms > 0 or delta_after_ms > 0:
-        # Step 1: Get timestamps of matching rows
-        ts_query = apply_filters(
-            select(telegrams_table.c.timestamp)
-        ).order_by(desc(telegrams_table.c.timestamp)).limit(limit)
-        ts_result = await db.execute(ts_query)
-        matching_timestamps = [row[0] for row in ts_result.fetchall()]
-
-        if not matching_timestamps:
-            return {"telegrams": [], "metadata": {"total_count": 0, "limit": limit, "offset": offset, "limit_reached": False}}
-
-        before = timedelta(milliseconds=delta_before_ms)
-        after = timedelta(milliseconds=delta_after_ms)
-        min_ts = min(matching_timestamps) - before
-        max_ts = max(matching_timestamps) + after
-
-        # Context query: all rows in the expanded time window (coarse), then filter to ±delta of any match
-        # We use the DB for the coarse range, then Python for precise per-timestamp check
-        context_base = select(telegrams_table).where(
-            telegrams_table.c.timestamp >= min_ts
-        ).where(
-            telegrams_table.c.timestamp <= max_ts
-        )
-        if start_time:
-            context_base = context_base.where(telegrams_table.c.timestamp >= start_time)
-        if end_time:
-            context_base = context_base.where(telegrams_table.c.timestamp <= end_time)
-
-        ctx_result = await db.execute(context_base.order_by(desc(telegrams_table.c.timestamp)))
-        all_context_rows = ctx_result.mappings().all()
-
-        # Precise filter: keep row if its timestamp is within ±delta of any matching timestamp
-        matching_ts_set = set(t.replace(tzinfo=None) if t.tzinfo else t for t in matching_timestamps)
-
-        def is_in_delta(row_ts):
-            ts = row_ts.replace(tzinfo=None) if hasattr(row_ts, 'tzinfo') and row_ts.tzinfo else row_ts
-            for mts in matching_ts_set:
-                diff_ms = (ts - mts).total_seconds() * 1000
-                # Row is within window if it is at most delta_before_ms before OR delta_after_ms after
-                if -delta_before_ms <= diff_ms <= delta_after_ms:
-                    return True
-            return False
-
-        filtered_rows = [r for r in all_context_rows if is_in_delta(r["timestamp"])]
-        total_count = len(filtered_rows)
-        paged_rows = filtered_rows[offset: offset + limit]
-
-        return {
-            "telegrams": _build_telegram_response(paged_rows),
-            "metadata": {
-                "total_count": total_count,
-                "limit": limit,
-                "offset": offset,
-                "limit_reached": total_count > (offset + limit),
-            },
-        }
-
-    # Standard path (no time-delta)
-    count_query = select(func.count()).select_from(base_query.subquery())
-    total_count = await db.scalar(count_query) or 0
-
-    data_query = base_query.order_by(desc(telegrams_table.c.timestamp)).offset(offset).limit(limit)
-    result = await db.execute(data_query)
-    rows = result.mappings().all()
+    result = await store.query(query)
 
     return {
-        "telegrams": _build_telegram_response(rows),
+        "telegrams": _build_telegram_response(result.telegrams),
         "metadata": {
-            "total_count": total_count,
+            "total_count": result.total_count,
             "limit": limit,
             "offset": offset,
-            "limit_reached": total_count > (offset + limit),
+            "limit_reached": result.limit_reached,
         },
     }
 
@@ -258,57 +195,54 @@ async def get_project_status():
     """Returns the status of the project upload feature"""
     env_proj = os.getenv("KNX_PROJECT_PATH")
     env_pwd = os.getenv("KNX_PASSWORD")
-    
+
     upload_feature_active = not env_proj and not env_pwd
     project_loaded = knx_daemon.global_knx_project is not None
     upload_required = upload_feature_active and not project_loaded
-    
+
     return {
         "upload_feature_active": upload_feature_active,
         "project_loaded": project_loaded,
-        "upload_required": upload_required
+        "upload_required": upload_required,
     }
 
 
 @router.post("/api/project/upload")
-async def upload_project(
-    file: UploadFile = File(...),
-    password: str = Form("")
-):
+async def upload_project(file: UploadFile = File(...), password: str = Form("")):
     """Uploads a KNX project file and password, saving them to the default volume"""
     env_proj = os.getenv("KNX_PROJECT_PATH")
     env_pwd = os.getenv("KNX_PASSWORD")
-    
+
     if env_proj or env_pwd:
         raise HTTPException(status_code=400, detail="Upload feature is disabled because environment variables are set.")
-        
+
     if not file.filename or not file.filename.endswith(".knxproj"):
         raise HTTPException(status_code=400, detail="File must be a .knxproj file")
-        
+
     default_dir = "/project"
     default_file = os.path.join(default_dir, "knx_project.knxproj")
     default_pwd = os.path.join(default_dir, "knx_project_password")
-    
+
     os.makedirs(default_dir, exist_ok=True)
-    
+
     content = await file.read()
-    
+
     with open(default_file, "wb") as f:
         f.write(content)
-        
+
     with open(default_pwd, "w", encoding="utf-8") as f:
         f.write(password)
-        
+
     # Trigger reload
     success = await knx_daemon._load_project_data()
-    
+
     if not success:
         if os.path.exists(default_file):
             os.remove(default_file)
         if os.path.exists(default_pwd):
             os.remove(default_pwd)
         raise HTTPException(status_code=400, detail="Failed to load project. Incorrect password or invalid file.")
-        
+
     return {"status": "ok", "message": "Project loaded successfully"}
 
 
@@ -322,15 +256,15 @@ async def get_server_config():
 async def get_knxkeys_status():
     """Returns the status of the knxkeys upload feature"""
     env_knxkeys = os.getenv("KNX_KNXKEYS_FILE")
-    
+
     upload_feature_active = not env_knxkeys
     knxkeys_found = False
-    
+
     if env_knxkeys:
         knxkeys_found = os.path.exists(env_knxkeys)
     else:
         knxkeys_found = os.path.exists(knx_daemon.DEFAULT_KNXKEYS_FILE)
-    
+
     return {
         "upload_feature_active": upload_feature_active,
         "knxkeys_found": knxkeys_found,
@@ -338,34 +272,33 @@ async def get_knxkeys_status():
 
 
 @router.post("/api/knxkeys/upload")
-async def upload_knxkeys(
-    file: UploadFile = File(...),
-    password: str = Form("")
-):
+async def upload_knxkeys(file: UploadFile = File(...), password: str = Form("")):
     """Uploads a .knxkeys file and password, saving them to the default volume and reconnecting"""
     env_knxkeys = os.getenv("KNX_KNXKEYS_FILE")
-    
+
     if env_knxkeys:
-        raise HTTPException(status_code=400, detail="Upload feature is disabled because KNX_KNXKEYS_FILE environment variable is set.")
-    
+        raise HTTPException(
+            status_code=400, detail="Upload feature is disabled because KNX_KNXKEYS_FILE environment variable is set."
+        )
+
     if not file.filename or not file.filename.endswith(".knxkeys"):
         raise HTTPException(status_code=400, detail="File must be a .knxkeys file")
-    
+
     default_dir = "/project"
     os.makedirs(default_dir, exist_ok=True)
-    
+
     content = await file.read()
-    
+
     with open(knx_daemon.DEFAULT_KNXKEYS_FILE, "wb") as f:
         f.write(content)
-    
+
     if password:
         with open(knx_daemon.DEFAULT_KNXKEYS_PASSWORD_FILE, "w", encoding="utf-8") as f:
             f.write(password)
-    
+
     # Trigger reconnection with new credentials
     await knx_daemon._reconnect_knx()
-    
+
     return {"status": "ok", "message": "KNX keys file uploaded. Reconnecting to bus..."}
 
 
