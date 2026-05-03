@@ -22,11 +22,11 @@ jobs:
         include:
           - arch: amd64
             ha_arch: amd64
-            base_image: "ghcr.io/hassio-addons/debian-base/amd64:7.3.3"
+            base_image: "ghcr.io/hassio-addons/debian-base/amd64:9.3.0"
             platforms: linux/amd64
           - arch: aarch64
             ha_arch: aarch64
-            base_image: "ghcr.io/hassio-addons/debian-base/aarch64:7.3.3"
+            base_image: "ghcr.io/hassio-addons/debian-base/aarch64:9.3.0"
             platforms: linux/arm64
 
     permissions:
