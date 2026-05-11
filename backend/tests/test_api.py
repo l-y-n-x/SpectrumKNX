@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
-from knx_telegram_store import StoredTelegram, TelegramQueryResult
 
 import knx_daemon
+from knx_telegram_store import StoredTelegram, TelegramQueryResult
 from main import app
 
 client = TestClient(app)
@@ -74,7 +74,7 @@ def test_get_filter_options_with_project():
 
 
 # Mock Database Store instead of DB Dependency
-@patch("database.store.query", new_callable=AsyncMock)
+@patch("database.query_store.query", new_callable=AsyncMock)
 def test_get_telegrams(mock_query):
     mock_query.return_value = TelegramQueryResult(
         telegrams=[
@@ -146,7 +146,7 @@ def test_get_filter_options_dpt_deduplication():
     assert data["dpts"][1]["sub"] is None
 
 
-@patch("database.store.query", new_callable=AsyncMock)
+@patch("database.query_store.query", new_callable=AsyncMock)
 def test_get_telegrams_extended_filters(mock_query):
     mock_query.return_value = TelegramQueryResult(
         telegrams=[
@@ -176,7 +176,7 @@ def test_get_telegrams_extended_filters(mock_query):
     assert len(data["telegrams"]) == 1
 
 
-@patch("database.store.query", new_callable=AsyncMock)
+@patch("database.query_store.query", new_callable=AsyncMock)
 def test_get_telegrams_delta_no_match(mock_query):
     mock_query.return_value = TelegramQueryResult(telegrams=[], total_count=0, limit_reached=False)
     response = client.get("/api/telegrams?delta_before_ms=100&source_address=9.9.9")
@@ -186,7 +186,7 @@ def test_get_telegrams_delta_no_match(mock_query):
     assert data["metadata"]["total_count"] == 0
 
 
-@patch("database.store.query", new_callable=AsyncMock)
+@patch("database.query_store.query", new_callable=AsyncMock)
 def test_get_telegrams_delta_with_matches(mock_query):
     from datetime import timedelta
 

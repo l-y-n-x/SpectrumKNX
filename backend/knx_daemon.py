@@ -2,14 +2,15 @@ import asyncio
 import logging
 import os
 from datetime import UTC, datetime
+from typing import Any
 
-from knx_telegram_store import StoredTelegram
 from xknx import XKNX
 from xknx.io import ConnectionConfig, ConnectionType, SecureConfig
 from xknx.telegram import Telegram as XknxTelegram
 from xknx.telegram.address import IndividualAddress
 
 from database import store
+from knx_telegram_store import StoredTelegram
 from parsers import format_dpt_name, get_simplified_type, parse_telegram_payload
 from ws_manager import manager
 
@@ -18,9 +19,9 @@ logging.basicConfig(level=getattr(logging, log_level_str, logging.INFO))
 logger = logging.getLogger("knx_daemon")
 logger.setLevel(getattr(logging, log_level_str, logging.INFO))
 
-xknx_instance = None
-global_knx_project = None
-project_name_map = {"ga": {}, "ia": {}}
+xknx_instance: XKNX | None = None
+global_knx_project: Any | None = None
+project_name_map: dict[str, dict[str, str | None]] = {"ga": {}, "ia": {}}
 
 
 async def _load_project_data() -> bool:
@@ -51,14 +52,14 @@ async def _load_project_data() -> bool:
         logger.info(f"Successfully loaded KNX project from {ets_project_file}")
 
         # Pre-populate name lookup maps
-        new_name_map = {"ga": {}, "ia": {}}
-        gas = global_knx_project.get("group_addresses", {})
+        new_name_map: dict[str, dict[str, str | None]] = {"ga": {}, "ia": {}}
+        gas = parsed_project.get("group_addresses", {})
         for ga, data in gas.items():
             new_name_map["ga"][ga] = data.get("name")
 
         # Individual addresses (devices)
-        devices = global_knx_project.get("devices", {})
-        for addr, data in devices.items():
+        devices = parsed_project.get("devices", {})
+        for addr, data in devices.items():  # type: ignore[assignment]
             name = data.get("name")
             if addr:
                 try:
@@ -71,9 +72,9 @@ async def _load_project_data() -> bool:
 
         if xknx_instance:
             dpt_dict = {
-                ga: data["dpt"] for ga, data in global_knx_project["group_addresses"].items() if data["dpt"] is not None
+                ga: data["dpt"] for ga, data in parsed_project["group_addresses"].items() if data["dpt"] is not None
             }
-            xknx_instance.group_address_dpt.set(dpt_dict)
+            xknx_instance.group_address_dpt.set(dpt_dict)  # type: ignore[arg-type]
             logger.info("Updated XKNX DPT mappings from project.")
 
         return True
@@ -167,7 +168,7 @@ async def process_telegram_async(telegram: XknxTelegram):
         target_name = project_name_map["ga"].get(target_addr)
 
         # Use the library store
-        await store.store(
+        store.store(
             StoredTelegram(
                 timestamp=ts,
                 source=source_addr,
@@ -384,6 +385,7 @@ async def knx_startup():
 
     # Initialize the Telegram Store (including schema creation/renames)
     await store.initialize()
+    store.start()
 
     connection_config = _build_connection_config()
 
@@ -421,4 +423,4 @@ async def knx_shutdown():
     if xknx_instance:
         logger.info("Stopping KNX Daemon...")
         await xknx_instance.stop()
-    await store.close()
+    await store.stop()

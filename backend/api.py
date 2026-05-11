@@ -3,11 +3,11 @@ import subprocess
 from datetime import datetime
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
-from knx_telegram_store import TelegramQuery
 from xknx.telegram.address import IndividualAddress
 
 import knx_daemon  # import global config
-from database import store
+from database import query_store
+from knx_telegram_store import TelegramQuery
 from parsers import (
     format_dpt_name,
     format_value_nicely,
@@ -102,10 +102,10 @@ async def get_telegrams(
 
     # Build the library query
     query = TelegramQuery(
-        sources=source_list or None,
-        destinations=target_list or None,
-        telegram_types=type_list_db or None,
-        dpt_mains=dpt_main_list or None,
+        sources=source_list,
+        destinations=target_list,
+        telegram_types=type_list_db,
+        dpt_mains=dpt_main_list,
         start_time=start_time,
         end_time=end_time,
         delta_before_ms=delta_before_ms,
@@ -115,7 +115,7 @@ async def get_telegrams(
         order_descending=True,
     )
 
-    result = await store.query(query)
+    result = await query_store.query(query)
 
     return {
         "telegrams": _build_telegram_response(result.telegrams),
