@@ -6,7 +6,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile, WebSocket,
 from xknx.telegram.address import IndividualAddress
 
 import knx_daemon  # import global config
-from database import query_store
+from database import store
 from knx_telegram_store import TelegramQuery
 from parsers import (
     format_dpt_name,
@@ -115,7 +115,7 @@ async def get_telegrams(
         order_descending=True,
     )
 
-    result = await query_store.query(query)
+    result = await store.query(query, flush_first=True)
 
     return {
         "telegrams": _build_telegram_response(result.telegrams),

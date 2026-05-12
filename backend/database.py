@@ -1,9 +1,7 @@
 import os
 
-from knx_telegram_store.backends.postgres import PostgresStore
-from knx_telegram_store.buffered import BufferedTelegramStore
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from sqlalchemy.orm import sessionmaker
+from knx_telegram_store.buffered import BufferedPostgresStore
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 # Uses env var or defaults to the docker-compose settings
 # Database connection settings
@@ -18,10 +16,8 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"postgresql+asyncpg://{DB_USER}:{DB_PA
 
 engine = create_async_engine(DATABASE_URL, echo=False)
 
-# Global Telegram Store
-_inner_store = PostgresStore(DATABASE_URL)
-store = BufferedTelegramStore(_inner_store, flush_interval=1.0)
-query_store = _inner_store
+# Global Telegram Store — BufferedPostgresStore combines buffering and persistence
+store = BufferedPostgresStore(DATABASE_URL, flush_interval=1.0)
 
 AsyncSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 

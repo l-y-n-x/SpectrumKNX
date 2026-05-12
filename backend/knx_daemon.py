@@ -168,7 +168,7 @@ async def process_telegram_async(telegram: XknxTelegram):
         target_name = project_name_map["ga"].get(target_addr)
 
         # Use the library store
-        store.store(
+        await store.store(
             StoredTelegram(
                 timestamp=ts,
                 source=source_addr,
