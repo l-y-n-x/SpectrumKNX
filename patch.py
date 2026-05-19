@@ -1,4 +1,4 @@
-with open("backend/tests/test_api.py", "r") as f:
+with open("backend/tests/test_api.py") as f:
     content = f.read()
 
 import re
