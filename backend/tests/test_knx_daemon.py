@@ -9,7 +9,7 @@ from knx_daemon import process_telegram_async, telegram_received_cb
 
 
 @pytest.mark.asyncio
-@patch("knx_daemon.store.store", new_callable=MagicMock)
+@patch("knx_daemon.store.store", new_callable=AsyncMock)
 @patch("knx_daemon.manager.broadcast", new_callable=AsyncMock)
 @patch("knx_daemon.parse_telegram_payload")
 async def test_process_telegram_async(mock_parse, mock_broadcast, mock_store):
