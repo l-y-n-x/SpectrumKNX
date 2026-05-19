@@ -1,5 +1,5 @@
 # Target Python version
-target-version = "py312"
+target-version = "py314"
 
 # Max line length for auto-format or other rules
 line-length = 120

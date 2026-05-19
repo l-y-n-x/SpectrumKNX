@@ -5,7 +5,7 @@ This document provides instructions for setting up the development environment, 
 ## Technology Stack
 
 ### Backend
-- **Language:** Python 3.12+
+- **Language:** Python 3.14+
 - **Framework:** [FastAPI](https://fastapi.tiangolo.com/)
 - **KNX Integration:** [xknx](https://xknx.io/) for bus communication and [xknxproject](https://github.com/XKNX/xknxproject) for ETS project parsing.
 - **ORM:** [SQLAlchemy](https://www.sqlalchemy.org/) (Async)
@@ -29,7 +29,7 @@ This document provides instructions for setting up the development environment, 
 
 ### 1. Prerequisites
 - Docker and Docker Compose installed.
-- Python 3.12 installed (for local backend development).
+- Python 3.14 installed (for local backend development).
 - Node.js 24+ installed (for local frontend development).
 
 ### 2. Environment Configuration
