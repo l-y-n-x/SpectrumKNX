@@ -1,6 +1,6 @@
 services:
   db:
-    image: timescale/timescaledb:latest-pg18
+    image: timescale/timescaledb:latest-pg15
     container_name: knx_timescale
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-knxuser}
