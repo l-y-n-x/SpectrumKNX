@@ -240,6 +240,23 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               />
             );
           })}
+          {activeFilters.sources.length > 0 && activeFilters.targets.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.2rem 0.25rem' }}>
+              {(['AND', 'OR'] as const).map(m => (
+                <button
+                  key={m}
+                  onClick={() => update({ sourceTargetRelation: m })}
+                  style={{
+                    padding: '0.1rem 0.45rem', borderRadius: '4px', fontSize: '0.65rem',
+                    fontWeight: 600, cursor: 'pointer', border: '1px solid',
+                    borderColor: activeFilters.sourceTargetRelation === m ? 'var(--accent-primary)' : 'var(--border-color)',
+                    background: activeFilters.sourceTargetRelation === m ? 'rgba(99,102,241,0.15)' : 'transparent',
+                    color: activeFilters.sourceTargetRelation === m ? 'var(--accent-primary)' : 'var(--text-dim)',
+                  }}
+                >{m}</button>
+              ))}
+            </div>
+          )}
           {activeFilters.targets.map(t => {
             const name = options.targets.find(opt => opt.address === t)?.name;
             return (
@@ -328,6 +345,31 @@ export const FilterPanel: React.FC<FilterPanelProps> = ({
               />
             ))}
           </Section>
+        )}
+
+        {/* AND / OR relation toggle — shown only when both sides have active selections */}
+        {activeFilters.sources.length > 0 && activeFilters.targets.length > 0 && (
+          <div style={{ padding: '0.4rem 1rem', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>Combine as</span>
+            {(['AND', 'OR'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => update({ sourceTargetRelation: mode })}
+                title={mode === 'AND'
+                  ? 'Show telegrams matching a selected source AND a selected target'
+                  : 'Show telegrams matching any selected source OR any selected target'}
+                style={{
+                  padding: '0.15rem 0.55rem', borderRadius: '4px', fontSize: '0.7rem',
+                  fontWeight: 600, cursor: 'pointer', border: '1px solid',
+                  borderColor: activeFilters.sourceTargetRelation === mode ? 'var(--accent-primary)' : 'var(--border-color)',
+                  background: activeFilters.sourceTargetRelation === mode ? 'rgba(99,102,241,0.15)' : 'transparent',
+                  color: activeFilters.sourceTargetRelation === mode ? 'var(--accent-primary)' : 'var(--text-dim)',
+                }}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
         )}
 
         {/* Target */}
