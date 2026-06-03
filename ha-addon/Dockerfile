@@ -28,8 +28,11 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmo
     && echo "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main" > /etc/apt/sources.list.d/pgdg.list
 
 # Add TimescaleDB repository
-RUN curl -fsSL https://packagecloud.io/timescale/timescaledb/gpgkey | gpg --dearmor -o /usr/share/keyrings/timescaledb-archive-keyring.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/timescaledb-archive-keyring.gpg] https://packagecloud.io/timescale/timescaledb/debian/ trixie main" > /etc/apt/sources.list.d/timescaledb.list
+# PackageCloud does not yet have Debian trixie packages; use bookworm which is ABI-compatible.
+RUN curl -fsSL https://packagecloud.io/timescale/timescaledb/gpgkey \
+      -o /usr/share/keyrings/timescaledb-archive-keyring.asc \
+    && echo "deb [signed-by=/usr/share/keyrings/timescaledb-archive-keyring.asc] https://packagecloud.io/timescale/timescaledb/debian/ bookworm main" \
+      > /etc/apt/sources.list.d/timescaledb.list
 
 # Install PostgreSQL 15 and TimescaleDB
 RUN apt-get update && apt-get install -y --no-install-recommends \
