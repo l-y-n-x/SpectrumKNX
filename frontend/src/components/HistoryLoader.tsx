@@ -72,6 +72,26 @@ export const HistoryLoader: React.FC<HistoryLoaderProps> = ({ onClose, onLoad, l
     return match ? match[1].slice(0, 4) + match[2] : value;
   };
 
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const clamped = clampYear(val);
+    if (clamped !== val) {
+      e.target.value = clamped;
+    }
+    setStartTime(clamped);
+    persistTimeRange({ startTime: clamped });
+  };
+
+  const handleEndTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    const clamped = clampYear(val);
+    if (clamped !== val) {
+      e.target.value = clamped;
+    }
+    setEndTime(clamped);
+    persistTimeRange({ endTime: clamped });
+  };
+
   const doFetch = useCallback(async (baseUrl: string) => {
     setIsLoading(true);
     setError(null);
@@ -250,14 +270,40 @@ export const HistoryLoader: React.FC<HistoryLoaderProps> = ({ onClose, onLoad, l
               <span className="section-label" style={{ marginBottom: 0 }}><Calendar size={12} /> Date Range</span>
               <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
+             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '0.75rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>From</label>
-                <input type="datetime-local" className="glass-input" style={{ width: '100%' }} value={startTime} onChange={e => { const v = clampYear(e.target.value); setStartTime(v); persistTimeRange({ startTime: v }); }} />
+                <input
+                  type="datetime-local"
+                  max="9999-12-31T23:59"
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                  value={startTime}
+                  onChange={handleStartTimeChange}
+                  onBlur={e => {
+                    const v = clampYear(e.target.value);
+                    if (v !== e.target.value) { e.target.value = v; }
+                    setStartTime(v);
+                    persistTimeRange({ startTime: v });
+                  }}
+                />
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.65rem', color: 'var(--text-dim)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.35rem' }}>To</label>
-                <input type="datetime-local" className="glass-input" style={{ width: '100%' }} value={endTime} onChange={e => { const v = clampYear(e.target.value); setEndTime(v); persistTimeRange({ endTime: v }); }} />
+                <input
+                  type="datetime-local"
+                  max="9999-12-31T23:59"
+                  className="glass-input"
+                  style={{ width: '100%' }}
+                  value={endTime}
+                  onChange={handleEndTimeChange}
+                  onBlur={e => {
+                    const v = clampYear(e.target.value);
+                    if (v !== e.target.value) { e.target.value = v; }
+                    setEndTime(v);
+                    persistTimeRange({ endTime: v });
+                  }}
+                />
               </div>
             </div>
             <button

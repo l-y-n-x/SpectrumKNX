@@ -93,7 +93,14 @@ docker-compose up -d
 ```
 Docker automatically uses `docker-compose.override.yml` for this mode, which mounts your local source code for live-reloading.
 
-### 2. Production Stack
+### 2. Development Stack with Local knx-telegram-store
+If you are developing the `knx-telegram-store` library in parallel in the same parent directory, you can mount and use the local source files instead of the released package by adding `docker-compose.dev-store.yml`:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.dev-store.yml up --build
+```
+This mounts the local repository and adjusts the container's `PYTHONPATH`.
+
+### 3. Production Stack
 Pulls the monolithic pre-built image from GHCR. Does not require local Node.js or high build times.
 ```bash
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
