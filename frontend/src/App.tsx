@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useWebSocket, type Telegram } from './hooks/useWebSocket';
 import { TelegramTable, type SortConfig, type SortKey } from './components/TelegramTable';
-import { LayoutDashboard, History, Settings, Play, Pause, Download, Trash2, SlidersHorizontal, LineChart, ChevronDown, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react';
+import { LayoutDashboard, History, Settings, Play, Pause, Download, Trash2, SlidersHorizontal, LineChart, BarChart2, ChevronDown, AlertTriangle, Sun, Moon, Monitor } from 'lucide-react';
 import { getCookie, setCookie } from './utils/cookies';
 import { useTheme } from './hooks/useTheme';
 import { apiUrl, wsUrl } from './utils/basePath';
@@ -11,6 +11,8 @@ import { Visualizer } from './components/Visualizer';
 import { FilterPanel } from './components/FilterPanel';
 import { ProjectUploadWizard } from './components/ProjectUploadWizard';
 import { KeysUploadWizard } from './components/KeysUploadWizard';
+import { LastSeenOverlay } from './components/LastSeenOverlay';
+import { StatisticsOverlay } from './components/StatisticsOverlay';
 import {
   DEFAULT_FILTERS,
   hasActiveFilters,
@@ -119,6 +121,10 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(true);
   const [isVisualizerOpen, setIsVisualizerOpen] = useState(false);
+  const [isLastSeenOpen, setIsLastSeenOpen] = useState(false);
+  const [lastSeenAddress, setLastSeenAddress] = useState('');
+  const [lastSeenMode, setLastSeenMode] = useState<'ga' | 'pa'>('ga');
+  const [isStatisticsOpen, setIsStatisticsOpen] = useState(false);
   const [backendVersion, setBackendVersion] = useState<string>('loading...');
   const [projectStatus, setProjectStatus] = useState<{
     upload_feature_active: boolean;
@@ -334,7 +340,17 @@ function App() {
       prev.includes(targetAddress) ? prev : [...prev, targetAddress]
     );
     setIsVisualizerOpen(true);
+    setIsLastSeenOpen(false);
+    setIsStatisticsOpen(false);
   };
+
+  const handleQuickLastSeen = useCallback((address: string, mode: 'ga' | 'pa') => {
+    setLastSeenAddress(address);
+    setLastSeenMode(mode);
+    setIsLastSeenOpen(true);
+    setIsVisualizerOpen(false);
+    setIsStatisticsOpen(false);
+  }, []);
 
   const sortedLiveTelegrams = useMemo(() => {
     const items = [...liveTelegrams];
@@ -502,6 +518,14 @@ function App() {
                   style={{ color: isVisualizerOpen ? 'var(--accent-primary)' : 'var(--text-dim)' }}
                 >
                   <LineChart size={18} />
+                </button>
+                <button
+                  className="icon-button"
+                  onClick={() => { setIsStatisticsOpen(v => !v); setIsVisualizerOpen(false); setIsLastSeenOpen(false); }}
+                  title="Traffic statistics"
+                  style={{ color: isStatisticsOpen ? 'var(--accent-primary)' : 'var(--text-dim)' }}
+                >
+                  <BarChart2 size={18} />
                 </button>
                 <div style={{ width: 1, height: 18, background: 'var(--border-color)' }} />
 
@@ -727,6 +751,7 @@ function App() {
                     activeFilters={activeFilters}
                     onFiltersChange={handleFiltersChange}
                     counts={filterCounts}
+                    onQuickLastSeen={handleQuickLastSeen}
                     mode="live"
                   />
                 </div>
@@ -741,6 +766,18 @@ function App() {
                     onTargetsChange={setSelectedVisualizationTargets}
                     onClose={() => setIsVisualizerOpen(false)}
                   />
+                ) : isLastSeenOpen ? (
+                  <LastSeenOverlay
+                    filterOptions={filterOptions}
+                    initialAddress={lastSeenAddress}
+                    initialMode={lastSeenMode}
+                    onClose={() => setIsLastSeenOpen(false)}
+                  />
+                ) : isStatisticsOpen ? (
+                  <StatisticsOverlay
+                    filterOptions={filterOptions}
+                    onClose={() => setIsStatisticsOpen(false)}
+                  />
                 ) : (
                   <TelegramTable
                     telegrams={filteredLiveTelegrams}
@@ -750,6 +787,7 @@ function App() {
                     activeFilters={activeFilters}
                     onQuickFilter={handleQuickFilter}
                     onQuickVisualize={handleQuickVisualize}
+                    onQuickLastSeen={handleQuickLastSeen}
                   />
                 )}
               </div>
