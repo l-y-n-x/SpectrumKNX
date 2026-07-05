@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.7.2
+
+### Fixed
+
+- **Sidebar Panel**: Use valid MDI icon `mdi:chart-timeline-variant` for sidebar panel (#128).
+- **Building Structure**: Sort communication objects by number and display object function alongside name (#129).
+- **Building Structure**: Sort building structure spaces alphabetically (#130).
+- **Add-on Schema**: Fix Supervisor options schema format for connection type and log level choices.
+
 ## 1.7.1
 
 ### Added
