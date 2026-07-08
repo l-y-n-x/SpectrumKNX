@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.10.0
+
+### Added
+
+- **Telegram log import/export**: export the live buffer and re-import logs for offline analysis (#99).
+- **Configurable web port**: the UI listen port can now be set via configuration (#147).
+
+### Fixed
+
+- **Header layout**: the "Spectrum KNX" brand no longer overlaps the toolbar metrics on narrow windows (#158).
+- **Large imports**: clearer, actionable error when a large zip import fails because temp storage is exhausted (#157).
+
 ## 1.9.1
 
 ### Fixed

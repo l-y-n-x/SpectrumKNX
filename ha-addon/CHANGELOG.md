@@ -1,9 +1,17 @@
 # Changelog
 
-## Unreleased
+## 1.10.0
+
+### Added
+
+- **Send to bus**: send and read group-address telegrams directly from the Group Monitor when write access is enabled (#146).
+- **Telegram log import/export**: export the live buffer and re-import logs for offline analysis (#99).
+- **Configurable web port**: the UI listen port can now be set via configuration (#147).
 
 ### Fixed
 
+- **Header layout**: the "Spectrum KNX" brand no longer overlaps the toolbar metrics on narrow windows (#158).
+- **Large imports**: clearer, actionable error when a large zip import fails because temp storage is exhausted (#157).
 - **Database Maintenance**: "Reclaim space" is no longer offered on the PostgreSQL backend — plain `VACUUM` cannot shrink PostgreSQL's files, so the button visibly did nothing. SQLite is unaffected (knx-telegram-store 0.7.1).
 
 ## 1.9.1
