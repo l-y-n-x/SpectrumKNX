@@ -9,10 +9,11 @@ verify an export→re-import round trip preserves addresses, type and payload.
 import io
 from datetime import UTC, datetime
 
-import telegram_export as te
-from telegram_import import decode_cemi
-from knx_telegram_store import StoredTelegram
 from knx_telegram_store.formats import format_telegram_element, iter_communication_log
+
+import telegram_export as te
+from knx_telegram_store import StoredTelegram
+from telegram_import import decode_cemi
 
 
 def _stored(**kw) -> StoredTelegram:

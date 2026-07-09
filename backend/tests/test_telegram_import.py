@@ -31,6 +31,7 @@ def _clean_daemon_globals():
         knx_daemon.xknx_instance = saved_xknx
         knx_daemon.project_name_map = saved_map
 
+
 # Real frames sampled from a Gira data logger (see the library format fixtures).
 BUSMON_LDATA = bytes.fromhex("2B090301030604BAD64193BC1012143DE3008000C8C3")  # 1.0.18 → 2/4/61 write
 BUSMON_ACK = bytes.fromhex("2B090301040604BAD6A0ACCC")  # single-byte link-layer ACK

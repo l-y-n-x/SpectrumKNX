@@ -58,9 +58,7 @@ def test_import_forbidden_in_read_only():
 def test_import_starts_job(mock_start):
     _reset_job()
     mock_start.return_value = telegram_import.ImportJob(filename="log.xml")
-    response = client.post(
-        "/api/import", files={"file": ("log.xml", b"<CommunicationLog/>", "application/xml")}
-    )
+    response = client.post("/api/import", files={"file": ("log.xml", b"<CommunicationLog/>", "application/xml")})
     assert response.status_code == 200
     assert response.json()["state"] == "running"
     assert mock_start.called
@@ -71,9 +69,7 @@ def test_import_starts_job(mock_start):
 @patch("api.telegram_import.start_import", side_effect=RuntimeError("An import is already running"))
 def test_import_conflict_when_running(mock_start):
     _reset_job()
-    response = client.post(
-        "/api/import", files={"file": ("log.xml", b"<CommunicationLog/>", "application/xml")}
-    )
+    response = client.post("/api/import", files={"file": ("log.xml", b"<CommunicationLog/>", "application/xml")})
     assert response.status_code == 409
 
 

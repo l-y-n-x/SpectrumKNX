@@ -25,7 +25,7 @@ _SQLITE_PREFIX = "sqlite+aiosqlite:///"
 
 if DATABASE_URL.startswith(_SQLITE_PREFIX):
     # Strip the URL scheme to get the file path (absolute paths keep their leading /)
-    _db_path = DATABASE_URL[len(_SQLITE_PREFIX):]
+    _db_path = DATABASE_URL[len(_SQLITE_PREFIX) :]
     if READ_ONLY:
         store = SqliteStore(_db_path, read_only=True)
         # The raw engine (used by /api/statistics) must also open read-only
