@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.1
+
+### Fixed
+
+- **Debian package dependencies**: Include `httpx` in the runtime dependencies to fix the Debian package installation and startup crash (#165).
+
 ## 1.11.0
 
 ### Added

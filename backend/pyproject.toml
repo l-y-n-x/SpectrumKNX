@@ -14,6 +14,7 @@ dependencies = [
     "aiosqlite",
     "asyncpg",
     "fastapi",
+    "httpx",
     "knx-telegram-store",
     "pydantic",
     "python-dotenv",
@@ -27,7 +28,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "httpx",
     "pre-commit",
     "pytest",
     "pytest-asyncio",
