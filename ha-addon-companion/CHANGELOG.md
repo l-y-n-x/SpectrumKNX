@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.12.0
+
+### Added
+
+- **Device status view**: browse the ETS building structure and open any device to see all its communication objects with live values — KNX-Lens-style diagnostics in the browser (#153).
+- **Shareable charts**: copy a link to any visualization (filters, targets, time window) to bookmark it — or add `&embed=1` and drop it into a Home Assistant dashboard as a self-updating chart (#150).
+
+### Changed
+
+- **Storage library update**: upgraded to `knx-telegram-store` 0.9.0 (#179).
+
 ## 1.11.1
 
 ### Fixed

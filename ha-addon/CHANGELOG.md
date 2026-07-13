@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.12.0
+
+### Added
+
+- **Delayed & cyclic send-to-bus**: schedule one-shot delayed sends or cyclic re-sends of group-address telegrams from the Group Monitor, like the ETS group monitor (#167).
+- **Device status view**: browse the ETS building structure and open any device to see all its communication objects with live values — KNX-Lens-style diagnostics in the browser (#153).
+- **Shareable charts**: copy a link to any visualization (filters, targets, time window) to bookmark it — or add `&embed=1` and drop it into a Home Assistant dashboard as a self-updating chart (#150).
+
+### Changed
+
+- **TimescaleDB is now optional**: upgraded to `knx-telegram-store` 0.9.0. The PostgreSQL backend detects the TimescaleDB extension at startup and uses hypertable partitioning plus native compression when available; without the extension it runs on plain PostgreSQL with identical functionality (#179).
+
+### Fixed
+
+- **KNX connection retry**: the daemon now retries the KNX connection until the bus interface is reachable instead of giving up when the gateway is briefly unavailable at startup (#171).
+
 ## 1.11.1
 
 ### Fixed
