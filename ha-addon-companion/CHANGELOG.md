@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.13.0
+
+### Added
+
+- **Exact sub-DPT filtering**: the DPT filter now selects individual subtypes (e.g. only 1.001 Switch) instead of always matching the whole major DPT — with per-subtype counts in the live view (#180).
+
+### Changed
+
+- **Storage library update**: upgraded to `knx-telegram-store` 0.10.0, which adds sub-DPT query support (#180).
+
+### Fixed
+
+- **Boolean values shown inverted**: DPT-1 values decoded by Home Assistant as enum names ("off", "down", …) were rendered as "on" regardless of state — both in the live feed and in loaded history. Payload-less GroupValueRead telegrams no longer show fabricated values (#181).
+- **Misleading connection status**: the settings page showed "KNX Connection: Disconnected" in companion mode although Home Assistant owns the bus and telegrams were flowing. It now reports the Home Assistant feed status instead (#184).
+
 ## 1.12.0
 
 ### Added

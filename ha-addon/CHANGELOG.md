@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.13.0
+
+### Added
+
+- **Exact sub-DPT filtering**: the DPT filter now selects individual subtypes (e.g. only 1.001 Switch) instead of always matching the whole major DPT — with per-subtype counts in the live view (#180).
+- **Send bar address helpers**: clicking the empty group-address box lists the last 10 sent GAs, and every telegram row gets a shortcut that opens the send bar with that GA and its DPT prefilled (#187).
+
+### Changed
+
+- **Storage library update**: upgraded to `knx-telegram-store` 0.10.0, which adds sub-DPT query support (#180).
+
+### Fixed
+
+- **Boolean display values**: DPT-1 values decoded by Home Assistant as enum names ("off", "down", …) were rendered as "on" regardless of state, and payload-less GroupValueRead telegrams showed fabricated values ("None"/"off") instead of "-". DPT-1 subtypes now also render their proper names (1.008 → up/down, 1.100 → cool/heat) (#181).
+
 ## 1.12.0
 
 ### Added
