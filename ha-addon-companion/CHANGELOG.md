@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.1
+
+### Changed
+
+- **Storage library update**: upgraded to `knx-telegram-store` 0.10.1, which fixes a startup crash on TimescaleDB-backed standalone installations (companion mode itself is unaffected — it reads Home Assistant's SQLite store).
+
 ## 1.13.0
 
 ### Added

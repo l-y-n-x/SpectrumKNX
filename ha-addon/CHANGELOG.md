@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.1
+
+### Fixed
+
+- **Startup crash on TimescaleDB with compressed chunks**: once the compression policy (introduced in 1.12.0) had compressed older chunks, the storage library's recurring startup data backfill exceeded TimescaleDB's tuple decompression limit (or hit the DML block on older TimescaleDB versions) and crashed the app on every boot. Upgraded to `knx-telegram-store` 0.10.1, which guards the backfill, lifts the limit for its own transaction, and never fails startup over it.
+
 ## 1.13.0
 
 ### Added
