@@ -168,7 +168,7 @@ function App() {
   const [serverConfig, setServerConfig] = useState<any>(null);
 
   // ── Settings & Persistence ──────────────────────────────────────────────────
-  const [loadLimit, setLoadLimit] = useState(Number(getCookie('loadLimit') || 25000));
+  const [loadLimit, setLoadLimit] = useState(Number(getCookie('loadLimit') || 100000));
   const [visibleColumns, setVisibleColumns] = useState<{ [key: string]: boolean }>(() => {
     try {
       const cookie = getCookie('visibleColumns');
@@ -189,6 +189,7 @@ function App() {
   // ── Live State ──────────────────────────────────────────────────────────────
   const [liveTelegrams, setLiveTelegrams] = useState<Telegram[]>([]);
   const [isPaused, setIsPaused] = useState(false);
+  const PAUSE_BUFFER_CAP = 10000;
   const bufferRef = useRef<Telegram[]>([]);
   const [bufferedCount, setBufferedCount] = useState(0);
 
@@ -311,6 +312,9 @@ function App() {
       });
     } else {
       bufferRef.current.push(t);
+      // Cap the pause buffer so a forgotten pause can't grow memory unbounded;
+      // the oldest telegrams are dropped first.
+      if (bufferRef.current.length > PAUSE_BUFFER_CAP) bufferRef.current.shift();
       setBufferedCount(prev => prev + 1);
     }
   }, [isPaused, loadLimit]);
@@ -359,12 +363,16 @@ function App() {
   // ── Pause / Resume ──────────────────────────────────────────────────────────
   const togglePause = () => {
     if (isPaused) {
-      setLiveTelegrams(prev => {
-        const next = [...bufferRef.current, ...prev];
-        return next.length > loadLimit ? next.slice(0, loadLimit) : next;
-      });
+      // Detach the buffer before scheduling the merge: the state updater runs
+      // after this handler, so reading bufferRef.current inside it would see
+      // the already-cleared array and drop every buffered telegram (#196).
+      const buffered = bufferRef.current.reverse(); // arrival order → newest-first
       bufferRef.current = [];
       setBufferedCount(0);
+      setLiveTelegrams(prev => {
+        const next = [...buffered, ...prev];
+        return next.length > loadLimit ? next.slice(0, loadLimit) : next;
+      });
     }
     setIsPaused(!isPaused);
   };
