@@ -948,6 +948,7 @@ function App() {
                     device={statusDevice}
                     latestTelegram={latestTelegram}
                     onClose={() => setStatusDevice(null)}
+                    onLastSeen={handleQuickLastSeen}
                   />
                 ) : isBuildingOpen ? (
                   <BuildingOverlay
