@@ -8,6 +8,11 @@ updates:
       dependencies:
         patterns:
           - "*"
+    # TypeScript 7 is a Go-based rewrite without the programmatic Compiler API;
+    # typescript-eslint and other tooling do not support it yet.
+    ignore:
+      - dependency-name: "typescript"
+        versions: [">=7.0.0"]
 
   - package-ecosystem: "pip"
     directory: "/backend"
